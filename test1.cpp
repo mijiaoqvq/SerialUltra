@@ -3,10 +3,10 @@
 #include "SerialUltra.h"
 
 
-struct Data2{int num = 64;};
-struct Data{char msg[200];} data;
-struct Head{int head=0xAA;int id=0x01;int length = sizeof(Data);} head;
-struct Tail{} tail;
+MessageData Data2{int num = 64;};
+MessageData Data{char msg[200];} data;
+MessageData Head{int head=0xAA;int id=0x01;int length = sizeof(Data);} head;
+MessageData Tail{} tail;
 
 void callbackFunction(const Data2& d){
     std::cout<<d.num<<std::endl;

@@ -3,10 +3,10 @@
 #include "SerialUltra.h"
 
 
-struct Data2{int num = 64;} data2;
-struct Data{char msg[200]="abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz";} data;
-struct Head{int head=0xAA;int id=0x01;int length = sizeof(Data2);} head;
-struct Tail{} tail;
+MessageData Data2{int num = 64;} data2;
+MessageData Data{char msg[200]="abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz";} data;
+MessageData Head{int head=0xAA;int id=0x01;int length = sizeof(Data2);} head;
+MessageData Tail{} tail;
 
 int main() {
     su::SerialUltra<Head,Tail> s("/dev/pts/1",115200);

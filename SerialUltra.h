@@ -10,6 +10,7 @@
 #include "MessageProcessor/OutputMessageProcessor.h"
 #include "MessageProcessor/InputMessageProcessor.h"
 
+#define MessageData struct __attribute__((packed))
 
 namespace su {
     template<typename Head, typename Tail>
