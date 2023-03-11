@@ -6,11 +6,13 @@
 #define SERIALULTRA_OUTPUTMESSAGEPROCESSOR_H
 
 #include <cstring>
-#include <list>
-#include <vector>
 #include <functional>
+#include <list>
+#include <memory>
+#include <vector>
 
 #include "serialib.h"
+
 
 namespace mp {
     template<typename Head, typename Tail>
@@ -18,7 +20,7 @@ namespace mp {
     private:
         std::list<std::function<void(Head&, size_t)>> headPreprocessorList;
         std::list<std::function<void(Tail&, const uint8_t*/*数据指针*/, size_t/*头和数据长度*/)>> tailPreprocessorList;
-        serialib& serial;
+        std::shared_ptr<serialib> pSerial;
 
         template<typename Data>
         std::string serialize(Head head, Data data, Tail tail) {
@@ -40,7 +42,9 @@ namespace mp {
     public:
         OutputMessageProcessor() = default;
 
-        explicit OutputMessageProcessor(serialib& _serial) : serial(_serial) {}
+        explicit OutputMessageProcessor(std::shared_ptr<serialib>& _pSerial) {
+            pSerial = _pSerial;
+        }
 
         OutputMessageProcessor(OutputMessageProcessor& other) = delete;
 
@@ -61,7 +65,7 @@ namespace mp {
         template<typename Data>
         int write(Head head, Data data, Tail tail){
             std::string message = serialize(head, data, tail);
-            return serial.writeBytes(message.data(),message.size());
+            return pSerial->writeBytes(message.data(),message.size());
         }
 
     };

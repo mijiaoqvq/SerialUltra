@@ -7,17 +7,27 @@
 
 #define MAX_READ_ONCE_CHAR 40
 
-#include <list>
-#include <string>
+#include <atomic>
 #include <functional>
+#include <list>
+#include <memory>
+#include <string>
 #include <thread>
 
 #include "serialib.h"
 #include "MessageProcessor/CallbackManager.h"
 
+
 namespace mp {
     template<typename Head, typename Tail>
     class InputMessageProcessor {
+        enum readReturnCode{
+            noGetID = -3,
+            noGetLength = -2,
+            bufferOverflow = -1
+                };
+
+
     private:
         size_t maxSize = 1024;
         std::string rxBuffer;
@@ -27,31 +37,31 @@ namespace mp {
         std::function<size_t(const Head&)> getLength;
         std::function<size_t(const Head&)> getID;
         std::thread readThread;
-        serialib& serial;
-        bool running{false};
+        std::atomic<bool> running{false};
+        std::shared_ptr<serialib> pSerial;
 
         template<typename pFunc>
         struct lambda_type;
 
         template<typename Lambda, typename... Args>
-        struct lambda_type<void(Lambda::*)(Args...) const>{
+        struct lambda_type<void (Lambda::*)(Args...) const> {
             using type = std::function<void(Args...)>;
         };
 
         int read() {
-            if(rxBuffer.size()>maxSize){
-                return -1;
+            if (rxBuffer.size() > maxSize) {
+                return bufferOverflow;
             }
             char buffer[MAX_READ_ONCE_CHAR];
-            int len = serial.readBytes(buffer, MAX_READ_ONCE_CHAR, 1);
+            int len = pSerial->readBytes(buffer, MAX_READ_ONCE_CHAR, 1);
             if (len > 0) {
                 if (!getLength) {
                     std::cout << "[ERROR] Function getLength do not be registered!" << std::endl;
-                    return -2;
+                    return noGetLength;
                 }
                 if (!getID) {
                     std::cout << "[ERROR] Function getID do not be registered!" << std::endl;
-                    return -3;
+                    return noGetID;
                 }
                 Head head;
                 Tail tail;
@@ -79,10 +89,10 @@ namespace mp {
                     }
 
                     size_t dataLength = getLength(head);
-                    if(dataLength>rxBuffer.size()){
+                    if (dataLength > rxBuffer.size()) {
                         needMoreBytes = true;
                         break;
-                    }else{
+                    } else {
                         needMoreBytes = false;
                     }
 
@@ -103,27 +113,29 @@ namespace mp {
                     callbackManager[id](p + sizeof(Head));
                     dataNum++;
                 }
-                rxBuffer.erase(0,eraseSize);
+                rxBuffer.erase(0, eraseSize);
                 return dataNum;
             }
 
             return 0;
         }
 
-        void readLoop(){
+        void readLoop() {
             while (running) {
                 read();
             }
         }
 
-        void _registerCallBack(size_t id, std::function<void(const uint8_t*)> callback){
-            callbackManager.registerCallback(id,callback);
+        void _registerCallBack(size_t id, std::function<void(const uint8_t*)> callback) {
+            callbackManager.registerCallback(id, callback);
         }
 
     public:
         InputMessageProcessor() = default;
 
-        explicit InputMessageProcessor(serialib& _serial) : serial(_serial) {}
+        explicit InputMessageProcessor(std::shared_ptr<serialib>& _pSerial) {
+            pSerial = _pSerial;
+        }
 
         InputMessageProcessor(InputMessageProcessor& other) = delete;
 
@@ -139,14 +151,14 @@ namespace mp {
 
         void stop() {
             running = false;
-            if(readThread.joinable()){
+            if (readThread.joinable()) {
                 readThread.join();
             }
         }
 
         void spinOnce() {
             while (running) {
-                int len = serial.available();
+                int len = pSerial->available();
                 if (len == 0) {
                     break;
                 }
@@ -162,8 +174,8 @@ namespace mp {
             }
         }
 
-        bool setMaxSize(size_t _maxSize){
-            if(_maxSize<=0) return false;
+        bool setMaxSize(size_t _maxSize) {
+            if (_maxSize <= 0) return false;
             maxSize = _maxSize;
             return true;
         }
@@ -185,23 +197,23 @@ namespace mp {
         }
 
         template<typename Data>
-        void registerCallBack(size_t id, std::function<void(const Data&)> callback){
-            std::function<void(const uint8_t*)> callbackRaw=[callback](const uint8_t* pData){
+        void registerCallBack(size_t id, std::function<void(const Data&)> callback) {
+            std::function<void(const uint8_t*)> callbackRaw = [callback](const uint8_t* pData) {
                 Data data;
-                memcpy((void*)&data,(void*)pData,sizeof(Data));
+                memcpy((void*) &data, (void*) pData, sizeof(Data));
                 callback(data);
             };
-            _registerCallBack(id,callbackRaw);
+            _registerCallBack(id, callbackRaw);
         }
 
         template<typename Data>
-        void registerCallBack(size_t id, void(*callback)(const Data&)){
-            registerCallBack(id,std::function<void(const Data&)>(callback));
+        void registerCallBack(size_t id, void(* callback)(const Data&)) {
+            registerCallBack(id, std::function<void(const Data&)>(callback));
         }
 
         template<typename Lambda, typename Func = typename lambda_type<decltype(&Lambda::operator())/*lambda的函数指针的类型*/>::type>
-        void registerCallBack(size_t id, Lambda callback){
-            registerCallBack(id,Func(callback));
+        void registerCallBack(size_t id, Lambda callback) {
+            registerCallBack(id, Func(callback));
         }
 
     };

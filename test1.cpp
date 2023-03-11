@@ -23,7 +23,7 @@ int main() {
 
     s.registerCallBack(0x01, cb);
     s.registerCallBack(0x02, callbackFunction);
-    s.spin(true);//std::cout << "Hello, World!" << std::endl;
+    s.spin(true);
     while(1){
         char ch;
         std::cin>>ch;
