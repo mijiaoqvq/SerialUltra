@@ -7,7 +7,7 @@ MessageData Tail{uint8_t sum;} tail;
 
 
 int main() {
-    su::SerialUltra<Head,Tail> s("/dev/ttyACM1",115200);
+    su::SerialUltra<Head,Tail> s("/dev/ttyACM0",115200);
     s.registerTailPreprocessor([](Tail& tail, const uint8_t* p, size_t len){
         uint8_t sum = 0;
         for(int i=0;i<len;i++){
