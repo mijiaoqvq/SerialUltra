@@ -5,7 +5,7 @@
 #ifndef SERIALULTRA_INPUTMESSAGEPROCESSOR_H
 #define SERIALULTRA_INPUTMESSAGEPROCESSOR_H
 
-#define MAX_READ_ONCE_CHAR 40
+#define MAX_READ_ONCE_CHAR 400
 
 #include <atomic>
 #include <functional>
@@ -63,6 +63,7 @@ namespace mp {
                     std::cout << "[ERROR] Function getID do not be registered!" << std::endl;
                     return noGetID;
                 }
+
                 Head head;
                 Tail tail;
                 int headCheckStatus = 0;

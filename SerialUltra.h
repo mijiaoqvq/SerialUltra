@@ -25,10 +25,11 @@ namespace su {
 
         SerialUltra(const std::string& device, int baud) : pSerial(std::make_shared<serialib>()), OMP(pSerial),
                                                            IMP(pSerial) {
-            if (open(device, baud) == 1) {
+            int x;
+            if ((x = open(device, baud) )== 1) {
                 IMP.start();
             } else {
-                std::cout << "[ERROR] open Failed!" << std::endl;
+                std::cout << "[ERROR]"<<x<<"open Failed!" << std::endl;
             }
         }
 
@@ -86,11 +87,13 @@ namespace su {
             IMP.registerCallBack(id, callback);
         }
 
-        void registerHeadPreprocessor(std::function<void(Head&, size_t)>& headPreprocessor) {
+        template<typename functionType>
+        void registerHeadPreprocessor(functionType headPreprocessor) {
             OMP.registerHeadPreprocessor(headPreprocessor);
         }
 
-        void registerTailPreprocessor(std::function<void(Tail&, const uint8_t*, size_t)>& tailPreprocessor) {
+        template<typename functionType>
+        void registerTailPreprocessor(functionType tailPreprocessor) {
             OMP.registerTailPreprocessor(tailPreprocessor);
         }
 
